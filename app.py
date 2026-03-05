@@ -1,51 +1,28 @@
 import streamlit as st
 import yfinance as yf
-import requests
+import google.generativeai as genai
 
-# 介面設定
-st.set_page_config(page_title="AI 財經導讀儀表板", layout="wide")
-st.title("📈 昨日美股表現與 AI 分析")
+# 從 Secrets 讀取 API Key
+gen_key = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=gen_key)
 
-# 1. 加入 Perplexity AI 摘要功能
-def get_ai_summary(api_key):
-    url = "https://api.perplexity.ai/chat/completions"
-    payload = {
-        "model": "sonar-pro",
-        "messages": [
-            {"role": "system", "content": "你是一位專業美股分析師，請用繁體中文總結昨日美股表現及三件財經大事。"},
-            {"role": "user", "content": "請提供昨日美股新聞摘要。"}
-        ]
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    response = requests.post(url, json=payload, headers=headers)
-    return response.json()['choices'][0]['message']['content']
+st.set_page_config(page_title="AI 財經儀表板", layout="wide")
+st.title("🤖 Gemini AI 昨日美股盤後分析")
 
-# 側邊欄：輸入 API Key
-api_key = st.sidebar.text_input("輸入 Perplexity API Key", type="password")
+# 呼叫 Gemini 模型
+def get_gemini_summary():
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    prompt = "你是一位專業美股分析師，請搜尋並總結昨日美股收盤表現、重要經濟數據，並列出三件最重要的財經新聞，請用繁體中文回答。"
+    response = model.generate_content(prompt)
+    return response.text
 
-if st.button("生成今日 AI 簡報"):
-    if api_key:
-        with st.spinner("AI 正在分析新聞..."):
-            try:
-                summary = get_ai_summary(api_key)
-                st.info(summary)
-            except Exception as e:
-                st.error(f"發生錯誤: {e}")
-    else:
-        st.warning("請先輸入 API Key")
+if st.button("✨ 一鍵生成 AI 簡報"):
+    with st.spinner("Gemini 正在分析大數據..."):
+        try:
+            summary = get_gemini_summary()
+            st.markdown(summary)
+        except Exception as e:
+            st.error(f"分析失敗：{e}")
 
 st.divider()
-
-# 2. 股價監控
-target_stocks = ["AAPL", "TSLA", "NVDA", "^GSPC"]
-cols = st.columns(len(target_stocks))
-
-for i, ticker in enumerate(target_stocks):
-    data = yf.Ticker(ticker).history(period="2d")
-    latest = data['Close'].iloc[-1]
-    prev = data['Close'].iloc[-2]
-    delta = ((latest - prev) / prev) * 100
-    cols[i].metric(ticker, f"${latest:.2f}", f"{delta:.2f}%")
+# 這裡繼續接你原本的 yfinance 圖表代碼...
