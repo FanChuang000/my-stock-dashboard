@@ -11,17 +11,25 @@ st.title("🤖 Gemini AI 昨日美股盤後分析")
 
 # 呼叫 Gemini 模型
 def get_gemini_summary():
-    try:
-        # 強制指定目前最穩定的 flash 版本
-        model = genai.GenerativeModel(model_name="models/gemini-1.5-flash")
-        
-        prompt = "今天是 2026 年 3 月 5 日。請分析 2026 年 3 月 4 日（昨日）的美股盤後表現、主要指數漲跌幅度，以及三則最重要的國際財經要聞。請用繁體中文回答。"
-        
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        # 顯示具體的錯誤代碼，幫助我們診斷是「權限不足」還是「名稱錯誤」
-        return f"診斷訊息：{str(e)}"
+    # 嘗試幾種最可能的「完整路徑名稱」
+    possible_models = [
+        'gemini-1.5-flash',      # 標準名稱
+        'models/gemini-1.5-flash', # 路徑名稱
+        'gemini-pro'             # 舊版相容名稱
+    ]
+    
+    error_log = []
+    for model_name in possible_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            # 測試簡單的生成
+            response = model.generate_content("請總結昨日美股表現，用繁體中文。")
+            return response.text
+        except Exception as e:
+            error_log.append(f"{model_name}: {str(e)}")
+            continue
+    
+    return "所有模型均呼叫失敗。詳細報告：\n" + "\n".join(error_log)
 if st.button("✨ 一鍵生成 AI 簡報"):
     with st.spinner("Gemini 正在分析大數據..."):
         try:
