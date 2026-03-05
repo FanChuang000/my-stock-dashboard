@@ -12,24 +12,26 @@ st.title("🤖 Gemini AI 昨日美股盤後分析")
 # 呼叫 Gemini 模型
 def get_gemini_summary():
     try:
-        # 1. 先列出所有你的 API Key 可以使用的模型
+        # 獲取模型清單
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         
-        # 2. 優先尋找最新的 Gemini 3 或 2.5 版本
-        # 如果找不到，就從清單中隨便抓一個包含 'gemini' 字眼的
-        selected_model = next((m for m in available_models if 'gemini-3' in m), 
-                         next((m for m in available_models if '2.5' in m), 
-                         available_models[0]))
+        # 核心策略：優先找 "flash"，因為它的免費配額最高！
+        # 按照 3-flash -> 1.5-flash -> 任何 flash 的順序找
+        selected_model = next((m for m in available_models if 'gemini-3-flash' in m), 
+                         next((m for m in available_models if '1.5-flash' in m), 
+                         next((m for m in available_models if 'flash' in m), available_models[0])))
         
-        st.write(f"🔍 自動選用模型：{selected_model}") # 讓你知道它選了誰
+        st.write(f"🚀 自動選用高配額模型：{selected_model}")
         
         model = genai.GenerativeModel(selected_model)
-        prompt = "今天是 2026 年 3 月 5 日。請總結昨日（3 月 4 日）美股盤後表現與三大國際財經要聞，用繁體中文條列呈現。"
+        prompt = "請以專業美股分析師身分，總結昨日美股盤後表現與三則財經要聞，使用繁體中文。"
         response = model.generate_content(prompt)
         return response.text
         
     except Exception as e:
-        return f"連線失敗，請嘗試重新產生 API Key。詳細錯誤：{str(e)}"
+        if "429" in str(e):
+            return "⚠️ 目前 Google API 免費額度過載，請稍等一分鐘後再試，或更換為 Flash 模型。"
+        return f"連線失敗：{str(e)}"
 if st.button("✨ 一鍵生成 AI 簡報"):
     with st.spinner("Gemini 正在分析大數據..."):
         try:
