@@ -11,25 +11,19 @@ st.title("🤖 Gemini AI 昨日美股盤後分析")
 
 # 呼叫 Gemini 模型
 def get_gemini_summary():
-    # 嘗試幾種最可能的「完整路徑名稱」
-    possible_models = [
-        'gemini-1.5-flash',      # 標準名稱
-        'models/gemini-1.5-flash', # 路徑名稱
-        'gemini-pro'             # 舊版相容名稱
-    ]
-    
-    error_log = []
-    for model_name in possible_models:
+    try:
+        # 1. 嘗試使用最新且最穩定的型號全名
+        model = genai.GenerativeModel('models/gemini-1.5-flash-8b') # 嘗試 8b 小型輕量版
+        response = model.generate_content("請總結昨日美股盤後表現。")
+        return response.text
+    except Exception:
         try:
-            model = genai.GenerativeModel(model_name)
-            # 測試簡單的生成
-            response = model.generate_content("請總結昨日美股表現，用繁體中文。")
+            # 2. 備援方案：嘗試不加 models/ 前綴
+            model = genai.GenerativeModel('gemini-1.5-flash-001')
+            response = model.generate_content("請總結昨日美股。")
             return response.text
         except Exception as e:
-            error_log.append(f"{model_name}: {str(e)}")
-            continue
-    
-    return "所有模型均呼叫失敗。詳細報告：\n" + "\n".join(error_log)
+            return f"權限/環境衝突：請檢查 Google AI Studio 帳號狀態。詳細：{str(e)}"
 if st.button("✨ 一鍵生成 AI 簡報"):
     with st.spinner("Gemini 正在分析大數據..."):
         try:
