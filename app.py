@@ -1,44 +1,68 @@
 import streamlit as st
 import yfinance as yf
 import google.generativeai as genai
+import datetime
+import pandas as pd
 
-# 從 Secrets 讀取 API Key
+# 配置與初始化
+st.set_page_config(page_title="AI 全方位美股研究站", layout="wide")
 gen_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=gen_key)
 
-st.set_page_config(page_title="AI 財經儀表板", layout="wide")
-st.title("🤖 Gemini AI 昨日美股盤後分析")
+# --- 功能 1: 自訂日期區塊 ---
+st.title("🚀 AI 投資研究儀表板")
+target_date = st.sidebar.date_input("1. 選擇分析日期", datetime.date.today() - datetime.timedelta(days=1))
 
-# 呼叫 Gemini 模型
-def get_gemini_summary():
-    try:
-        # 獲取模型清單
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        
-        # 核心策略：優先找 "flash"，因為它的免費配額最高！
-        # 按照 3-flash -> 1.5-flash -> 任何 flash 的順序找
-        selected_model = next((m for m in available_models if 'gemini-3-flash' in m), 
-                         next((m for m in available_models if '1.5-flash' in m), 
-                         next((m for m in available_models if 'flash' in m), available_models[0])))
-        
-        st.write(f"🚀 自動選用高配額模型：{selected_model}")
-        
-        model = genai.GenerativeModel(selected_model)
-        prompt = "請以專業美股分析師身分，總結昨日美股盤後表現與三則財經要聞，使用繁體中文。"
-        response = model.generate_content(prompt)
-        return response.text
-        
-    except Exception as e:
-        if "429" in str(e):
-            return "⚠️ 目前 Google API 免費額度過載，請稍等一分鐘後再試，或更換為 Flash 模型。"
-        return f"連線失敗：{str(e)}"
-if st.button("✨ 一鍵生成 AI 簡報"):
-    with st.spinner("Gemini 正在分析大數據..."):
-        try:
-            summary = get_gemini_summary()
-            st.markdown(summary)
-        except Exception as e:
-            st.error(f"分析失敗：{e}")
+# --- 功能 2: 個股深入查詢 ---
+st.sidebar.divider()
+st.sidebar.subheader("2. 個股深度分析")
+symbol = st.sidebar.text_input("輸入美股代號 (如: NVDA)", "").upper()
 
-st.divider()
-# 這裡繼續接你原本的 yfinance 圖表代碼...
+# --- 定義 AI 函數 ---
+def ask_gemini(prompt):
+    model = genai.GenerativeModel('gemini-1.5-flash') # 或你之前測試成功的名稱
+    response = model.generate_content(prompt)
+    return response.text
+
+# --- 頁面主體：市場焦點與自動化報表 ---
+tab1, tab2, tab3 = st.tabs(["昨日市況分析", "個股研究專區", "市場焦點 (強勢股)"])
+
+with tab1:
+    if st.button("生成指定日期分析"):
+        prompt = f"請分析 {target_date} 當日美股大盤走勢與重要財經新聞，請用繁體中文條列摘要。"
+        st.info(ask_gemini(prompt))
+
+with tab2:
+    if symbol:
+        st.header(f"🔍 個股分析：{symbol}")
+        # 抓取數據
+        stock = yf.Ticker(symbol)
+        df = stock.history(period="1mo")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.line_chart(df['Close'])
+        with col2:
+            latest_price = df['Close'].iloc[-1]
+            st.metric(f"{symbol} 最新股價", f"${latest_price:.2f}")
+            st.write("技術簡評：近一個月走勢如上圖。")
+            
+        # AI 針對個股的新聞統整
+        if st.button(f"生成 {symbol} AI 研究報告"):
+            with st.spinner("正在蒐集個股新聞與法人評價..."):
+                stock_prompt = f"請針對美股代號 {symbol}，統整近期的重要新聞、法人展望及目標價。請用繁體中文回答。"
+                st.markdown(ask_gemini(stock_prompt))
+
+with tab3:
+    st.header("🔥 市場強勢股掃描")
+    if st.button("掃描近五日強勢股原因"):
+        with st.spinner("正在掃描市場強勢標的..."):
+            # 這裡我們利用 AI 的搜尋能力來找強勢股（省去爬蟲大量數據的開發）
+            scanner_prompt = """
+            請幫我找出在最近 5 個交易日內，美股市場中表現最「強勢」的幾支股票（漲幅顯著或新聞熱度高）。
+            並針對這些股票：
+            1. 總結股價強勁的原因。
+            2. 提供法人的未來展望。
+            請用繁體中文以表格或條列式整理。
+            """
+            st.markdown(ask_gemini(scanner_prompt))
