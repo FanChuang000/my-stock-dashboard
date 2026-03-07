@@ -1,5 +1,7 @@
-import requests
-from bs4 import BeautifulSoup
+import streamlit as st
+import google.generativeai as genai
+import requests  # <--- 新增這行
+from bs4 import BeautifulSoup  # <--- 新增這行
 
 def fetch_cnyes_news():
     """專門抓取鉅亨網美股頭條的爬蟲"""
