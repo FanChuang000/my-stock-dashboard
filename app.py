@@ -55,35 +55,3 @@ with tab1:
             prompt = f"你是資深分析師。請分析 {target_date} 當日美股大盤走勢、主要指數漲跌幅度，並列出三件重要的國際財經要聞。請用繁體中文回答。"
             result = ask_gemini(prompt)
             st.markdown(result)
-
-with tab2:
-    if not symbol:
-        st.info("👈 請先在左側欄位輸入美股代號（例如: AAPL）")
-    else:
-        st.header(f"個股分析：{symbol}")
-        try:
-            # 抓取 yfinance 數據
-            stock_data = yf.Ticker(symbol)
-            hist = stock_data.history(period="1mo")
-            
-            if hist.empty:
-                st.warning(f"找不到代號 '{symbol}' 的數據，請檢查輸入是否正確。")
-            else:
-                col1, col2 = st.columns([2, 1])
-                with col1:
-                    st.line_chart(hist['Close'])
-                with col2:
-                    current_price = hist['Close'].iloc[-1]
-                    prev_price = hist['Close'].iloc[-2]
-                    change = ((current_price - prev_price) / prev_price) * 100
-                    st.metric("最新股價", f"${current_price:.2f}", f"{change:.2f}%")
-                
-                if st.button(f"生成 {symbol} AI 研究報告"):
-                    with st.spinner(f"正在分析 {symbol} 相關資訊..."):
-                        p = f"請針對美股 {symbol} 提供最新研究報告：包含近期新聞總結、法人未來展望與目標價。請用繁體中文。"
-                        st.markdown(ask_gemini(p))
-        except Exception as e:
-            st.error(f"數據抓取錯誤: {e}")
-
-            針對這些標的，總結其股價上漲的原因，並附上法人對其未來的看法。請用繁體中文表格呈現。"""
-            st.markdown(ask_gemini(p))
