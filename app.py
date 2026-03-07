@@ -25,10 +25,19 @@ symbol = st.sidebar.text_input("輸入美股代號 (如: NVDA)", "").upper().str
 # 3. 定義 AI 函數 (加入智慧模型選取)
 def ask_gemini(prompt):
     try:
-        # 自動列出可用模型並選取一個
+        # 1. 檢索可用模型並選取
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         selected_model = next((m for m in available_models if 'flash' in m), available_models[0])
-        model = genai.GenerativeModel(selected_model)
+        
+        # 2. 關鍵修正：加入 google_search_retrieval 工具 (1.5版) 
+        # 或 google_search (2.0/3.0版)
+        # 修改這一行即可
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash', 
+            tools=[{"google_search_retrieval": {}}] # 這就是開啟「官方聯網」的鑰匙
+        )
+        
+        # 3. 呼叫 AI 並生成內容
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
