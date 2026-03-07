@@ -85,10 +85,5 @@ with tab2:
         except Exception as e:
             st.error(f"數據抓取錯誤: {e}")
 
-with tab3:
-    st.header("📈 強勢股掃描與展望")
-    if st.button("掃描近五日強勢股原因"):
-        with st.spinner("AI 正在掃描大數據..."):
-            p = """請找出近期美股中表現強勁（漲幅大或討論度高）的股票。
             針對這些標的，總結其股價上漲的原因，並附上法人對其未來的看法。請用繁體中文表格呈現。"""
             st.markdown(ask_gemini(p))
